@@ -6,7 +6,7 @@ pub(crate) struct Palette<const RESOLUTION: usize> {
 
 impl<const RESOLUTION: usize> Palette<RESOLUTION> {
     pub(crate) fn new(limit: f32) -> Self {
-        let colors = Self::build_palette(0.3, 3.0, 2.0);
+        let colors = Self::build_palette(0.8, 3.0, 2.0);
         let anti_colors = Self::build_palette(2.0, 1.6, 1.0);
         Self {
             colors,

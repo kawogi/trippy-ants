@@ -4,7 +4,9 @@ A visually attractive simulation based on cellular automata and particle systems
 
 Heavily inspired by [Sebastian Lague's Slime Simulation](https://github.com/SebLague/Slime-Simulation).
 
-![screenshot of the running simulation](screenshot.png)
+![screenshot of the running simulation](screenshot-1.png)
+
+![screenshot of the running simulation with anti-ants](screenshot-2.png)
 
 The current state is a proof of concept and needs a lot of cleanup, but I promised to upload it in a timely manner. I might add the ability to live-edit parameters through a simple browser interface.
 
