@@ -7,13 +7,6 @@
 //! It creates the window, initializes the simulation, and runs the main loop.
 
 #![warn(clippy::all, clippy::pedantic)]
-// #![allow(
-//     clippy::cast_lossless,
-//     clippy::cast_possible_truncation,
-//     clippy::cast_sign_loss,
-//     clippy::cast_precision_loss,
-//     clippy::cast_possible_wrap
-// )]
 
 mod agent;
 mod config;
@@ -27,13 +20,15 @@ use chrono::Local;
 use minifb::{Key, KeyRepeat, Window, WindowOptions};
 use rayon::iter::{IntoParallelRefMutIterator as _, ParallelIterator as _};
 use std::{
-    iter,
+    env, fs, iter,
     path::Path,
+    process::ExitCode,
     time::{Duration, Instant},
 };
+use toml::ser;
 
 use crate::{
-    agent::Agent, config::ACTIVE_CONFIG, frame::Frame, palette::Palette, simulation::Simulation,
+    agent::Agent, config::DEFAULT_CONFIG, frame::Frame, palette::Palette, simulation::Simulation,
 };
 
 /// Width of the simulation and frame buffer in pixels.
@@ -51,8 +46,34 @@ const MAX_FPS: u64 = 30;
 /// # Panics
 ///
 /// Panics if the window cannot be created.
-fn main() {
-    let config = ACTIVE_CONFIG;
+fn main() -> ExitCode {
+    // read path to config file from command line
+    let config = if let Some(config_file) = env::args().nth(1) {
+        println!("loading config from '{config_file}'");
+        let config_str = match fs::read_to_string(&config_file) {
+            Ok(config_str) => config_str,
+            Err(error) => {
+                eprintln!("failed to read config file '{config_file}': {error}");
+                return ExitCode::FAILURE;
+            }
+        };
+        // parse config from string
+        match toml::from_str(&config_str) {
+            Ok(config) => config,
+            Err(error) => {
+                eprintln!("failed to parse config file '{config_file}': {error}");
+                return ExitCode::FAILURE;
+            }
+        }
+    } else {
+        println!("no config file provided, using default config");
+        DEFAULT_CONFIG
+    };
+
+    if let Ok(config_str) = ser::to_string(&config) {
+        println!("loaded config:\n{config_str}");
+    }
+
     let mut rng = 0xfeed_face_u32;
 
     let palette = Palette::<1024>::new(&config.colors);
@@ -117,4 +138,6 @@ fn main() {
             window_start += Duration::from_secs(1);
         }
     }
+
+    ExitCode::SUCCESS
 }

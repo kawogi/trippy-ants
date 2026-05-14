@@ -3,33 +3,10 @@
 #![allow(unused, reason = "not all configuration options are used all the time")]
 use std::{f32::consts::PI, ops::Range};
 
-/// The selected configuration the simulation will use.
-pub(crate) const ACTIVE_CONFIG: Config = CONFIG;
+use serde::{Deserialize, Serialize};
 
-const CONFIG: Config = Config {
-    world: WorldConfig {
-        wall_value: None,
-        topology: GridTopology::Plane,
-        decay_factor: 0.99,
-    },
-    agent: AgentConfig {
-        count: 20_000,
-        value: 0.3..1.2,
-        speed: 1.0..1.7,
-        sensor_distance: 20.0,
-        sensor_width: 0.6,
-        anti_percentage: 0.0,
-        anti_speed_factor: 0.1,
-        wall_bounce_flip_value: true,
-        wall_bounce_reaction: WallBounceReaction::Center,
-    },
-    colors: ColorConfig {
-        normal: [1.0, -1.0, -0.3],
-        anti: [-1.5, -1.0, 0.0],
-    },
-};
-
-const ROSE_CONFIG: Config = Config {
+/// The configuration preset that is used if no config file is provided.
+pub(crate) const DEFAULT_CONFIG: Config = Config {
     world: WorldConfig {
         wall_value: None,
         topology: GridTopology::Plane,
@@ -53,6 +30,7 @@ const ROSE_CONFIG: Config = Config {
 };
 
 /// The configuration-preset for a simulation.
+#[derive(Serialize, Deserialize)]
 pub(crate) struct Config {
     /// Configures the pheromone dispersion on the grid..
     pub(crate) world: WorldConfig,
@@ -69,8 +47,7 @@ pub(crate) struct Config {
 /// This will mostly affect the blur-effect of the edges of the grid. The Torus topology will allow
 /// for the pheromones levels to blur into the opposite edge, while the Plane topology will clip
 /// the them at the edge of the grid.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[expect(unused, reason = "not all configuration options are used all the time")]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) enum GridTopology {
     /// The grid is a torus. Data from one edge will blur into the opposite edge.
     ///
@@ -81,14 +58,17 @@ pub(crate) enum GridTopology {
 }
 
 /// Configuration for the ants that will move around the grid and leave pheromones.
+#[derive(Serialize, Deserialize)]
 pub(crate) struct AgentConfig {
     /// Number of ants.
     pub(crate) count: usize,
 
     /// Minimum and maximum pheromone intensity an ant can leave on the grid.
+    #[serde(with = "serde_range_f32")]
     pub(crate) value: Range<f32>,
 
     /// Minimum and maximum speed of an ant.
+    #[serde(with = "serde_range_f32")]
     pub(crate) speed: Range<f32>,
 
     /// How many pixels ahead of the ant it will try to sense the pheromones of other ants.
@@ -125,8 +105,7 @@ pub(crate) struct AgentConfig {
 }
 
 /// Determines what happens when the ant hits a wall (i.e. tries to leave the window).
-#[derive(Clone, Copy)]
-#[expect(unused, reason = "not all configuration options are used all the time")]
+#[derive(Clone, Copy, Serialize, Deserialize)]
 pub(crate) enum WallBounceReaction {
     /// The ant will respawn at the center of the grid.
     Center,
@@ -155,6 +134,7 @@ pub(crate) enum WallBounceReaction {
 /// Configuration for the world the simulation will run in.
 ///
 /// The settings mostly affect the pheromone dispersion on the grid.
+#[derive(Serialize, Deserialize)]
 pub(crate) struct WorldConfig {
     /// Constant value for the outermost pixel rows and columns.
     ///
@@ -172,6 +152,7 @@ pub(crate) struct WorldConfig {
 }
 
 /// Configuration for the colorization of the pheromone levels.
+#[derive(Serialize, Deserialize)]
 pub(crate) struct ColorConfig {
     /// Red, Green, Blue values for the normal ants.
     ///
@@ -190,4 +171,36 @@ pub(crate) struct ColorConfig {
     /// Greater values will emphasize the color channel and negative values will reduce their effect.
     /// The typical range is -1.0..=1.0.
     pub(crate) anti: [f32; 3],
+}
+
+/// Used to be able to serialize and deserialize the range<f32> type as a two-element array rather
+/// than a struct with two separate fields.
+mod serde_range_f32 {
+    use serde::{Deserialize as _, Deserializer, Serialize as _, Serializer};
+    use std::ops::Range;
+
+    /// Serialize the range<f32> type as a two-element array.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the range cannot be serialized.
+    pub(crate) fn serialize<S>(range: &Range<f32>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        [range.start, range.end].serialize(serializer)
+    }
+
+    /// Deserialize the range<f32> type from a two-element array.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the range cannot be deserialized.
+    pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Range<f32>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let [start, end] = <[f32; 2]>::deserialize(deserializer)?;
+        Ok(start..end)
+    }
 }

@@ -29,6 +29,16 @@ If you're getting the error message "linker 'cc' not found" you might have to [i
 - for CentOS: `sudo yum install gcc`
 - for Solus: `sudo eopkg it -c system.devel`
 
+## Creating your own simulation
+
+To start your own simulation rather than the included demo, you need to provide the path to a configuration file on the command line. An example can be found in `demo.config.toml`. Start it by running:
+
+```sh
+cargo run --release -- demo.config.toml
+```
+
+The documentation of all possible options can be found in `src/config.rs`.
+
 ## About AI
 
 I used Composer 2 to get a first draft (doom fire simulation) to scaffold a window with an update loop to modify the frame-buffer. It also generated the code for saving a PNG screenshot on pressing space.
