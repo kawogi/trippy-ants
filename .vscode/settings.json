@@ -1,13 +1,27 @@
 {
     "cSpell.words": [
+        "ascii",
         "blit",
         "euclid",
+        "hypot",
+        "idents",
+        "kawogi",
         "Lague's",
         "minifb",
+        "overcaptures",
+        "pathbuf",
+        "peekable",
         "recip",
+        "repr",
+        "rescope",
+        "respawn",
         "RRGGBB",
+        "scrutinee",
+        "supertrait",
         "trippy",
         "Trippy",
+        "unseparated",
+        "upcastable",
         "xfeed"
     ]
 }

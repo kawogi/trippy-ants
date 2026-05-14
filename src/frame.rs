@@ -1,9 +1,12 @@
+//! The part of the simulation which handles the display and screenshot saving of the simulation.
+
 use std::path::Path;
 
+use image::error::{LimitError, LimitErrorKind};
 use minifb::Window;
 use rayon::{
-    iter::{IndexedParallelIterator, ParallelIterator},
-    slice::ParallelSliceMut,
+    iter::{IndexedParallelIterator as _, ParallelIterator as _},
+    slice::ParallelSliceMut as _,
 };
 
 use crate::{grid::Grid, palette::Palette};
@@ -21,15 +24,16 @@ pub(crate) struct Frame {
 }
 
 impl Frame {
+    /// Create a new frame with the given width and height in pixels.
     pub(crate) fn new(width: usize, height: usize) -> Self {
         Self {
             width,
             height,
-            pixels: vec![0u32; width * height],
+            pixels: vec![0; width * height],
         }
     }
 
-    /// Update the frame with the current state of the simulation by colorizing the stored cell-values
+    /// Update the frame with the current state of the simulation by colorizing the stored cell-values.
     pub(crate) fn update<const RESOLUTION: usize>(
         &mut self,
         grid: &Grid,
@@ -39,6 +43,11 @@ impl Frame {
             .par_chunks_exact_mut(self.width)
             .enumerate()
             .for_each(|(y, pixels)| {
+                #[expect(
+                    clippy::cast_possible_truncation,
+                    clippy::cast_possible_wrap,
+                    reason = "image dimensions are small enough"
+                )]
                 for (pixel, cell) in pixels.iter_mut().zip(grid.row(y as i32)) {
                     *pixel = palette.get_color(cell.level);
                 }
@@ -46,6 +55,10 @@ impl Frame {
     }
 
     /// Update the window with the current state of the frame.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the window's size and the frame's size do not match.
     pub(crate) fn update_window(&self, window: &mut Window) {
         window
             .update_with_buffer(&self.pixels, self.width, self.height)
@@ -53,20 +66,27 @@ impl Frame {
     }
 
     /// store the current image as a PNG file.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the PNG file cannot be saved.
     pub(crate) fn save_png(&self, path: &Path) -> Result<(), image::ImageError> {
         let rgb = self
             .pixels
             .iter()
             .flat_map(|rgb| {
-                let [b, g, r, _] = rgb.to_le_bytes();
-                [r, g, b]
+                let [blue, green, red, _] = rgb.to_le_bytes();
+                [red, green, blue]
             })
             .collect::<Vec<_>>();
+        let dimension_error = |_error| {
+            image::ImageError::Limits(LimitError::from_kind(LimitErrorKind::DimensionError))
+        };
         image::save_buffer(
             path,
             &rgb,
-            self.width as u32,
-            self.height as u32,
+            self.width.try_into().map_err(dimension_error)?,
+            self.height.try_into().map_err(dimension_error)?,
             image::ColorType::Rgb8,
         )
     }
