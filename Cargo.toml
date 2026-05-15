@@ -15,7 +15,7 @@ homepage = "https://github.com/kawogi/trippy-ants"
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 
 # required to save the screenshots as PNG files
-image = { version = "0.25", default-features = false }
+image = { version = "0.25", default-features = false, features = ["png"] }
 
 # required to create the window and display the simulation
 minifb = "0.28"
